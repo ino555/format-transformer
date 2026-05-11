@@ -9,7 +9,7 @@ Show Claude an example of how data should look before and after (A_example → B
 1. Extracts the transformation rules from your example
 2. Builds an intermediate representation with explicit computed values
 3. Validates the output against the example schema
-4. Iterates and self-corrects if something doesn't match (up to 5 attempts)
+4. Iterates and self-corrects if something does not match (up to 5 attempts)
 
 ## Supported formats
 
@@ -23,28 +23,31 @@ Works with any combination of:
 ## Example usage
 
 ```
-Aşağıdaki A→B örneğini incele ve aynı dönüşümü A_new'e uygula.
+Look at the A→B example below and apply the same transformation to A_new.
 
-A_example:
+A_example (SQL result):
 order_id | unit_price | qty | discount
 1001     | 120.00     | 3   | 0.10
+1002     | 45.50      | 10  | 0.00
 
-B_example:
-"Sipariş No","Birim Fiyat","Adet","Net Tutar"
-"1001","120,00","3","324,00"
+B_example (target CSV):
+"Order No","Unit Price","Qty","Discount","Net Total"
+"1001","120.00","3","10%","324.00"
+"1002","45.50","10","0%","455.00"
 
 A_new:
 order_id | unit_price | qty | discount
 2001     | 55.00      | 10  | 0.05
 2002     | 340.00     | 2   | 0.20
+2003     | 15.75      | 20  | 0.00
 ```
 
 ## Key behaviors
 
-- **Fixed schema**: All output records have exactly the same fields as B_example — missing values get `null`, no new keys invented
-- **Explicit arithmetic**: Computed columns are calculated step by step (shown in reasoning)
-- **Verification loop**: Output is checked against the example before delivery; if it doesn't match, it retries
-- **Format fidelity**: Decimal separators, quoting style, Turkish characters — all matched exactly
+- **Fixed schema**: All output records have exactly the same fields as B_example — missing values get `null`, no new keys are invented
+- **Explicit arithmetic**: Computed columns are calculated step by step and shown in the reasoning trace
+- **Verification loop**: Output is checked against the example before delivery; if it does not match, it retries automatically
+- **Format fidelity**: Decimal separators, quoting style, date formats, casing — all matched exactly to the example
 
 ## Installation
 
@@ -60,7 +63,7 @@ git clone https://github.com/ino555/format-transformer.git ~/.claude/skills/form
 
 Then restart Claude Code. The skill activates automatically when you show Claude an A→B transformation example.
 
-## How it works internally
+## How it works
 
 The skill uses a 6-step structured workflow:
 
@@ -68,7 +71,7 @@ The skill uses a 6-step structured workflow:
 2. **Schema extraction** — write out explicit field mappings and transformation rules
 3. **Intermediate JSON** — compute all values explicitly before rendering
 4. **Validation** — check types, row counts, computed values
-5. **Render** — produce final output from validated data
-6. **Verification** — compare against B_example, retry if needed
+5. **Render** — produce the final output from validated data
+6. **Verification** — compare against B_example, retry if any check fails
 
-This structured approach means computed columns (like Net Tutar = price × qty × discount) are verified before output, and schema consistency is enforced across all records.
+This structured approach means computed columns (e.g. Net Total = unit_price × qty × (1 − discount)) are verified before output, and schema consistency is enforced across all records.
